@@ -1,35 +1,61 @@
-// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "./Card.sol";
 
 contract Collection {
     string public name;
-    uint256 public cardCount;
-    address public owner;
-    mapping(uint256 => Card) public cards;
+    uint256 public maxCardCount;
+    uint256 public collectionId;
+    Card[] public cards;
 
-    constructor(string memory _name, uint256 _cardCount, address _owner) {
+    mapping(uint256 => address) public cardToOwner;
+
+    constructor(
+        string memory _name,
+        uint256 _maxCardCount,
+        address mainContract,
+        uint256 _collectionId
+    ) {
         name = _name;
-        cardCount = _cardCount;
-        owner = _owner;
-    }
+        maxCardCount = _maxCardCount;
+        collectionId = _collectionId;
 
-    function addCard(uint256 cardId, string memory cardName) public {
-        require(msg.sender == owner, "Only the owner can add cards.");
-        Card newCard = new Card(cardId, cardName, owner);
-        cards[cardId] = newCard;
-    }
-
-    function getCard(uint256 cardId) public view returns (Card) {
-        return cards[cardId];
-    }
-
-    function getAllCards() public view returns (Card[] memory) {
-        Card[] memory allCards = new Card[](cardCount);
-        for (uint256 i = 0; i < cardCount; i++) {
-            allCards[i] = cards[i];
+        // Création des cartes dans la collection, sans propriétaire initial
+        for (uint256 i = 0; i < maxCardCount; i++) {
+            cards.push(new Card(i, "Nom",  msg.sender));
         }
-        return allCards;
+    }
+
+    // Fonction pour récupérer les cartes non attribuées
+    function getAvailableCards() public view returns (uint256[] memory) {
+        uint256 availableCount = getAvailableCardsCount();
+        uint256[] memory result = new uint256[](availableCount);
+        uint256 counter = 0;
+
+        for (uint256 i = 0; i < cards.length; i++) {
+            if (cardToOwner[i] == address(0)) {
+                result[counter] = i;
+                counter++;
+            }
+        }
+        return result;
+    }
+
+    // Nombre de cartes disponibles
+    function getAvailableCardsCount() public view returns (uint256) {
+        uint256 count = 0;
+        for (uint256 i = 0; i < cards.length; i++) {
+            if (cardToOwner[i] == address(0)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    // Assigner une carte à un propriétaire
+    function assignCardToOwner(uint256 _cardId, address _owner) external {
+        require(cardToOwner[_cardId] == address(0), "Card is already owned");
+        cardToOwner[_cardId] = _owner;
+        cards[_cardId].changeOwner(_owner); // Appel à la fonction du contrat Card
     }
 }

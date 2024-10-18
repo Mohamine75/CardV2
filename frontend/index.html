@@ -1,13 +1,336 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Pokémon TCG</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pokémon TCG</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
+  <script type="module" src="/src/main.tsx"></script>
+</head>
+<body>
+<nav class="navbar has-shadow" role="navigation" aria-label="main navigation" style="border-bottom: 2px solid #ccc;">
+  <div class="navbar-brand">
+    <a class="navbar-item" href="#">
+      <img src="src/assets/logo_TCG.png" alt="Pokemon TCG Logo" style="width: 100px; height: 100px; object-fit: contain;" />
+    </a>
+  </div>
+  <div id="navbarBasicExample" class="navbar-menu">
+    <div class="navbar-start">
+      <a class="navbar-item" id="home-link">Home</a>
+      <a class="navbar-item" id="documentation-link">Documentation</a>
+      <a class="navbar-item" id="collections-link">Collections</a>
+    </div>
+  </div>
+</nav>
+
+<div id="cards" class="container mt-5">Your Cards</div>
+<div id="collections" class="container mt-5" style="display: none;"></div>
+
+<script>
+  let contract;
+  let userAccount;
+
+  async function init() {
+    // Connect to MetaMask
+    if (typeof window.ethereum !== 'undefined') {
+      const web3 = new Web3(window.ethereum);
+      await window.ethereum.request({ method: 'eth_requestAccounts' });
+      userAccount = (await web3.eth.getAccounts())[0];
+
+      // Initialize your contract
+      const contractAddress = "YOUR_CONTRACT_ADDRESS"; // Remplacez par l'adresse de votre contrat
+      const contractABI = [
+        {
+          "inputs": [],
+          "stateMutability": "nonpayable",
+          "type": "constructor"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "previousOwner",
+              "type": "address"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "newOwner",
+              "type": "address"
+            }
+          ],
+          "name": "OwnershipTransferred",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
+              "internalType": "address",
+              "name": "_from",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "address",
+              "name": "_to",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "_cardId",
+              "type": "uint256"
+            }
+          ],
+          "name": "transfer",
+          "type": "event"
+        },
+        {
+          "inputs": [],
+          "name": "OwnableSetter",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "_cardId",
+              "type": "uint256"
+            },
+            {
+              "internalType": "contract Collection",
+              "name": "_collection",
+              "type": "address"
+            }
+          ],
+          "name": "achat",
+          "outputs": [],
+          "stateMutability": "payable",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "boosterPrice",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "string",
+              "name": "name",
+              "type": "string"
+            },
+            {
+              "internalType": "uint256",
+              "name": "maxCardCount",
+              "type": "uint256"
+            }
+          ],
+          "name": "createCollection",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "collectionId",
+              "type": "uint256"
+            }
+          ],
+          "name": "getCollection",
+          "outputs": [
+            {
+              "internalType": "contract Collection",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "_collectionId",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "_cardId",
+              "type": "uint256"
+            },
+            {
+              "internalType": "address",
+              "name": "_to",
+              "type": "address"
+            }
+          ],
+          "name": "mintCard",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "openBooster",
+          "outputs": [],
+          "stateMutability": "payable",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "owner",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "newOwner",
+              "type": "address"
+            }
+          ],
+          "name": "transferOwnership",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        }
+      ]; // Remplacez par l'ABI de votre contrat
+      contract = new web3.eth.Contract(contractABI, contractAddress);
+
+      // Afficher les cartes possédées par l'utilisateur
+      await displayCardsByOwner(userAccount);
+    } else {
+      alert('Please install MetaMask!');
+    }
+  }
+
+  async function displayCardsByOwner(owner) {
+    const cardIds = await contract.methods.getCardsByOwner(owner).call(); // Remplacez par la méthode adéquate
+    $('#cards').empty();
+
+    for (let id of cardIds) {
+      const card = await contract.methods.getCard(id).call(); // Remplacez par la méthode pour obtenir les détails de la carte
+      $('#cards').append(`
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="media">
+                                <div class="media-left">
+                                    <figure class="image is-48x48">
+                                        <img src="${card.image}" alt="Card Image"> <!-- Assurez-vous que l'objet de carte a une propriété d'image -->
+                                    </figure>
+                                </div>
+                                <div class="media-content">
+                                    <p class="title is-4">${card.name}</p>
+                                    <p class="subtitle is-6">ID: ${id}</p>
+                                </div>
+                            </div>
+                            <div class="content">
+                                Level: ${card.level} <br>
+                                Type: ${card.type} <br>
+                                <button class="button is-link" onclick="useCard(${id})">Use Card</button>
+                            </div>
+                        </div>
+                    </div>
+                `);
+    }
+  }
+
+  async function displayCollections() {
+    const collectionCount = await contract.methods.collections.call(); // Récupérer le nombre de collections
+    $('#collections').empty();
+    $('#cards').hide(); // Cacher les cartes
+
+    for (let i = 0; i < collectionCount; i++) {
+      const collection = await contract.methods.collections(i).call(); // Obtenir les détails de la collection
+      $('#collections').append(`
+                    <div class="card">
+                        <div class="card-content">
+                            <p class="title is-4">${collection.name}</p>
+                            <p class="subtitle is-6">ID: ${collection.collectionId}</p>
+                            <div class="content">
+                                <button class="button is-link" onclick="displayCardsInCollection(${collection.collectionId})">Show Cards</button>
+                            </div>
+                        </div>
+                    </div>
+                `);
+    }
+
+    $('#collections').show(); // Afficher les collections
+  }
+
+  async function displayCardsInCollection(collectionId) {
+    const collection = await contract.methods.collections(collectionId).call(); // Obtenir la collection
+    const cardIds = collection.cards; // Assurez-vous que cela correspond à votre structure de données
+
+    $('#collections').empty();
+    for (let id of cardIds) {
+      const card = await contract.methods.getCard(id).call(); // Remplacez par la méthode pour obtenir les détails de la carte
+      $('#collections').append(`
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="media">
+                                <div class="media-left">
+                                    <figure class="image is-48x48">
+                                        <img src="${card.image}" alt="Card Image"> <!-- Assurez-vous que l'objet de carte a une propriété d'image -->
+                                    </figure>
+                                </div>
+                                <div class="media-content">
+                                    <p class="title is-4">${card.name}</p>
+                                    <p class="subtitle is-6">ID: ${id}</p>
+                                </div>
+                            </div>
+                            <div class="content">
+                                Level: ${card.level} <br>
+                                Type: ${card.type} <br>
+                                <button class="button is-link" onclick="useCard(${id})">Use Card</button>
+                            </div>
+                        </div>
+                    </div>
+                `);
+    }
+  }
+
+  async function useCard(cardId) {
+    alert(`Using card with ID: ${cardId}`);
+    // Ajoutez ici la logique pour utiliser la carte via votre contrat
+  }
+
+  $(document).ready(function() {
+    $('#collections-link').click(function() {
+      displayCollections(); // Appelle la fonction pour afficher les collections
+    });
+  });
+
+  window.addEventListener('load', init);
+</script>
+</body>
 </html>
