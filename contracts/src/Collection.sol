@@ -22,7 +22,8 @@ contract Collection {
 
         // Création des cartes dans la collection, sans propriétaire initial
         for (uint256 i = 0; i < maxCardCount; i++) {
-            cards.push(new Card(i, "Nom",  msg.sender));
+            cards.push(new Card(i, "Nom",  address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266)));
+            cardToOwner[i] = msg.sender;
         }
     }
 
@@ -58,4 +59,12 @@ contract Collection {
         cardToOwner[_cardId] = _owner;
         cards[_cardId].changeOwner(_owner); // Appel à la fonction du contrat Card
     }
+    function changeOwner(uint256 _cardId, address _owner) external {
+        cardToOwner[_cardId] = _owner;
+        cards[_cardId].changeOwner(_owner);
+    }
+
+
+    // Fonction pour récupérer les informations d'une collection
+
 }

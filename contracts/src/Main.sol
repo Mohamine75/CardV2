@@ -28,6 +28,7 @@ contract Main is Ownable {
         return collections[collectionId];
     }
 
+
     function openBooster() external payable {
         require(msg.value == boosterPrice, "Insufficient Ether sent, booster costs 0.001 ETH");
 
@@ -57,7 +58,7 @@ contract Main is Ownable {
         address _oldOwner = _card.owner();
         require(_card.availability() == true && _card.prix() ==msg.value);
         _card.changeOwner(msg.sender);
-        collections[_collection.collectionId()].assignCardToOwner(_cardId, msg.sender); // Assigne la carte au joueur
+        collections[_collection.collectionId()].changeOwner(_cardId, msg.sender); // Assigne la carte au joueur
         _card.changeAvailability();
         emit transfer(_oldOwner,msg.sender,_cardId);
     }
@@ -90,6 +91,49 @@ contract Main is Ownable {
 
     function CollectionCounter() public view returns(uint){
         return collectionCount;
+    }
+
+    function getCollectionInformation(uint256 _collectionId) public view returns (string memory name, uint256 maxCardCount, uint256 collectionId)
+    {
+        Collection collection = collections[_collectionId];
+        return (collection.name(), collection.maxCardCount(), collection.collectionId());
+    }
+
+    function getCardDetails(uint256 collectionId, uint256 cardId) public view returns (
+        uint256 id,
+        string memory name,
+        address owner,
+        uint prix,
+        bool availability
+    ) {
+        require(collectionId < collectionCount, "Collection does not exist.");
+        Collection collection = collections[collectionId];
+        require(cardId < collection.maxCardCount(), "Card does not exist.");
+
+        Card  card = collection.cards(cardId);
+        return (card.id(), card.name(), card.owner(), card.prix(), card.availability());
+    }
+    function getCardsByOwner(address owner) public view returns (uint256[] memory cardIds , uint256[] memory collectionIds) {
+        uint256 totalCollections = collectionCount;
+
+        uint256 count = 0;
+
+        for (uint256 i = 0; i < totalCollections; i++) {
+            Collection collection = collections[i];
+            uint256 maxCardCount = collection.maxCardCount();
+
+            for (uint256 j = 0; j < maxCardCount; j++) {
+                Card card = collection.cards(j);
+
+                if (card.getOwner() == owner) {
+                    cardIds[count] = j;
+                    collectionIds[count] = i;
+                    count++;
+                }
+            }
+        }
+
+        return (cardIds, collectionIds);
     }
 
 }
