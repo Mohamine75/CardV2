@@ -14,4 +14,6 @@ contract Main {
   function createCollection(string calldata name, int cardCount) external {
     collections[count++] = new Collection(name, cardCount);
   }
+
+    //test
 }
